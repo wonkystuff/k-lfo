@@ -1,4 +1,4 @@
- /*
+/*
   KASTLE ARP
   -melodic beast
   -product page:
@@ -9,9 +9,11 @@
   this is usefull for creating variating patterns and have interference patterns between the lfo rate and decay of the envelope
   NOTE knob selects a note
   TIMBRE knob adds XOR timbral modulation
-  CHORD patchpoint accesses 3 different chords from lowest voltage to highest they are the following (when root note is C)
+  CHORD patchpoint accesses 5 different chords from lowest voltage to highest they are the following (when root note is C)
   -F major "-" F A C
+  -A minor (in between) A C E
   -C major (unconnected) C E G
+  - E minor (in between) E G B
   - G major "+" G B D
 
   
@@ -47,7 +49,7 @@
 
 */
 
-#define F_CPU 8000000  // This is used by delay.h library
+//#define F_CPU 8000000  // This is used by delay.h library
 #include <stdlib.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>        // Adds useful constants
@@ -91,26 +93,11 @@ const PROGMEM uint16_t dcoTable[97] = { //tuned pitches
 //001000100100 548 //Dmol
 
 const uint16_t scales[8] = {548, 548, 545, 529, 145, 2192, 2180, 2180};
-/*
-const uint8_t _scales[8][3]={
-  {2,5,9}, //dmol
-  {2,5,9}, //dmol
-  {0,5,9}, //fdur
-  {0,4,9}, //amol
-  {0,4,7}, //cdur
-  {4,7,11}, //emol
-  {2,7,11}, //gdur
-  {2,7,11}, //gdur
-};
-*/
-const PROGMEM uint8_t _scales[24]={2,5,9,2,5,9,0,5,9,0,4,9,0,4,7,4,7,11,2,7,11,2,7,11};
-
 uint16_t _useScale = scales[4]; //scales[4];
 uint16_t pitchAverage, lastPitchAverage;
 uint8_t semitone, lastSemitone;
 uint8_t root;
 uint8_t lastPitch, pitch;
-uint8_t lastWindow, window;
 uint8_t transpose = 0; //default used when formating memory
 uint8_t fineTune = 120; //default used when formating memory
 const uint8_t rootToPitch[8] = {2, 2, 5, 9, 0, 4, 7, 7}; //bass tone for each chord
@@ -154,15 +141,9 @@ uint8_t analogChannelSequence[6] = {0, 1, 0, 2, 0, 3};
 uint8_t analogChannelReadIndex;
 
 #define PITCHMAP_POINTS 5
-/*
 uint16_t pitchMap[10] = {
   0, 63, 127, 191, 235,   0, 40, 50, 60, 84
 };
-*/
-uint16_t pitchMap[10] = {
-  0, 30, 60, 120, 250,   0, 6, 11, 16, 22
-};
-
 
 uint32_t curveMap(uint8_t value, uint8_t numberOfPoints, uint16_t * tableMap) {
   uint32_t inMin = 0, inMax = 255, outMin = 0, outMax = 255;
@@ -279,16 +260,6 @@ void setFrequency2(uint16_t input) {
   frequency2 = input;
 }
 
-
-uint8_t gridToNote(uint8_t _note) {
-  uint8_t _octave=_note/3;
-  
- // _note=_scales[root][_note%3] + (_octave*12) ;//+ transpose
-  _note=pgm_read_word_near(_scales + (root*3) +(_note%3)) + (_octave*12) ;//+ transpose
-   return _note;
-  
-}
-
 uint8_t quantizeNote(uint8_t _note) {
   uint8_t _semitone = _note % 12;
   if (bitRead(_useScale, (_semitone) % 12) ) {
@@ -309,10 +280,7 @@ void setSemitone(uint16_t _semitone) {
   int semiSize = (pgm_read_word_near(dcoTable + _semitone + 1) << 1) - (pgm_read_word_near(dcoTable + _semitone) << 1);
   int fine = map(fineTune, 0, 255, -semiSize, semiSize);
   setFrequency((pgm_read_word_near(dcoTable + _semitone + transpose) << 1) + fine);
-  semiSize = (pgm_read_word_near(dcoTable + rootToPitch[root]+1+12) ) - (pgm_read_word_near(dcoTable + rootToPitch[root]+12) );
-  int bassFine = map(fineTune, 0, 255, -semiSize, semiSize);
- // setFrequency2((pgm_read_word_near(dcoTable + rootToPitch[root] + transpose) << 1) + bassFine);
-   setFrequency2((pgm_read_word_near(dcoTable + rootToPitch[root] + transpose+12) ) + bassFine);
+  setFrequency2((pgm_read_word_near(dcoTable + rootToPitch[root] + transpose) << 1) + fine);
 }
 
 void setFrequency(uint16_t input) {
@@ -320,7 +288,7 @@ void setFrequency(uint16_t input) {
 }
 
 
-void trigger() {
+uint8_t trigger() {
   decayVolume = 255;//, decayVolume2 = 150;
 }
 
@@ -385,7 +353,7 @@ void setup()  { //happends at the startup
   startConversion();
   _delay_us(100);
   
-  while (startupRead < 12 * 4) { //wait for all analog inputs to be read
+  while (startupRead < 12) { //wait for all analog inputs to be read
     loop();
   }
   
@@ -395,19 +363,16 @@ void setup()  { //happends at the startup
 
 }
 
-uint8_t chord;
 void loop() {
 
   if (bootMode) { // BOOT MODE
     decayVolume = 255;
     _xor = 0;
-    //_useScale = scales[4];
-    root=4;
+    _useScale = scales[4];
     if (analogValues[0] > HIGH_THRES) {
       fineTune = analogValues[WS_2];
       transpose = map( analogValues[WS_1], 0, 255, 0, 13);
-      //pitch = quantizeNote(curveMap(pitchAverage, PITCHMAP_POINTS, pitchMap));
-       pitch= gridToNote(curveMap(pitchAverage, PITCHMAP_POINTS, pitchMap));
+      pitch = quantizeNote(curveMap(pitchAverage, PITCHMAP_POINTS, pitchMap));
       setSemitone( pitch);
     }
     else {
@@ -417,29 +382,12 @@ void loop() {
     }
   }
   else { // NORMAL LOOP
-    if (analogValues[0] < (LOW_THRES /*- 10*/)) chord = 2; //f major
-    //else if (analogValues[0] < LOW_THRES) chord = 3;  // a minor
-    else if (analogValues[0] > HIGH_THRES /*+ 3*/) chord = 6;  // g major
-    //else if (analogValues[0] > HIGH_THRES - 3) chord = 5; //e minor
-    else chord = 4; //c major
-    
-    if(chord>root) root=chord;
-    else if(root-chord>1) root=chord;
-    else{
-      if(chord-root>1) root=chord;
-      else{
-        
-         if (analogValues[0] < ((LOW_THRES /*- 10*/)-2)) chord = 2; //f major
-         //else if (analogValues[0] < (LOW_THRES-1)) chord = 3;  // a minor
-         else if (analogValues[0] > (HIGH_THRES /*+ 3*/ -2)) chord = 6;  // g major
-         //else if (analogValues[0] > (HIGH_THRES - 3-1)) chord = 5; //e minor
-         else chord = 4; //c major
-        
-        if(root!=chord) root=chord;
-      }
-    }
-    
-   // _useScale = scales[root];
+    if (analogValues[0] < (LOW_THRES - 10)) root = 2; //f major
+    else if (analogValues[0] < LOW_THRES) root = 3;  // a minor
+    else if (analogValues[0] > HIGH_THRES + 3) root = 6;  // g major
+    else if (analogValues[0] > HIGH_THRES - 6) root = 5; //e minor
+    else root = 4; //c major
+    _useScale = scales[root];
     if (lastAnalogChannelRead == WS_1 && lastAnalogValues[WS_1] != analogValues[WS_1]) {
       _xor = analogValues[WS_1];
     }
@@ -448,20 +396,7 @@ void loop() {
     }
 
     lastPitch = pitch;
-    //
-   // pitch = quantizeNote(curveMap(pitchAverage, PITCHMAP_POINTS, pitchMap));
-   
-   //avoiding ripples =going down or a bigger step will be imediate, but going one step up requires overcoming 20% window
-   lastWindow=window;
-   uint8_t newWindow= curveMap(pitchAverage, PITCHMAP_POINTS, pitchMap);// map(pitchAverage, 0,255,0,22);
-   if(lastWindow>newWindow)  window=newWindow;
-   else if(newWindow-lastWindow>1) window=newWindow;
-   else{
-   // if(newWindow==map(constrain(pitchAverage-3,0,255), 0,255,0,22)) window=newWindow;
-    if(newWindow==curveMap(constrain(pitchAverage-2,0,255), PITCHMAP_POINTS, pitchMap)) window=newWindow;
-   }
-   
-    pitch= gridToNote(window);
+    pitch = quantizeNote(curveMap(pitchAverage, PITCHMAP_POINTS, pitchMap));
     
     if (analogValues[WS_2] < 100) { 
       //when decay CCW
@@ -490,16 +425,12 @@ ISR(TIMER1_COMPA_vect)  // render both oscillators in the interupt
 {
   OCR0A = sample;
   OCR0B = sample2;
-  
-  _phase2 += frequency2;
-  uint8_t lastSample2=sample2;
-  sample2 = (wavetable[_phase2 >> 8] +lastSample2)>>1; // ^ _xor; //very simple lowpass to compensate for the low-res sinewave
-  
   _phase += frequency;
+  _phase2 += frequency2;
   _phs = _phase >> 8;
   sample = ((wavetable[_phs] ^ _xor) * runningDecay) >> 8; 
   //  sample = (wavetable[_phs] ^ _xor) ;
-  
+  sample2 = wavetable[_phase2 >> 8] ; // ^ _xor;
 }
 
 
@@ -538,29 +469,25 @@ uint16_t getConversionResult() {
   uint16_t result = ADCL;
   return result | (ADCH << 8);
 }
-
-
-#define AVG_RUNS 4
-uint8_t analogCount[4] = {0,0,0,0};
-uint16_t analogRun[4][AVG_RUNS];
+uint8_t pitchCount = 0;
+uint16_t pitchRun[4];
 
 ISR(ADC_vect) { // interupt triggered ad completion of ADC counter
   startupRead++;
   if (!firstRead) { // discard first reading due to ADC multiplexer crosstalk
     //update values and remember last values
     lastAnalogValues[analogChannelRead] = analogValues[analogChannelRead];
-    uint16_t res = getConversionResult();
-
-    analogCount[analogChannelRead] = (analogCount[analogChannelRead] + 1) % AVG_RUNS;
-    analogRun[analogChannelRead][analogCount[analogChannelRead]] = res;
-    uint16_t avgSum = 0;
-    for (uint8_t i = 0; i < AVG_RUNS; i++) {
-        avgSum += analogRun[analogChannelRead][i] ;
-    }
-    analogValues[analogChannelRead] = (avgSum / AVG_RUNS) >> 2;
+    analogValues[analogChannelRead] = getConversionResult() >> 2;
     if (analogChannelRead == PITCH) {
-        lastPitchAverage = pitchAverage;
-        pitchAverage = analogValues[analogChannelRead];
+      lastPitchAverage = pitchAverage;
+      pitchCount++;
+      if (pitchCount > 3) pitchCount = 0;
+      pitchRun[pitchCount] = analogValues[PITCH];
+      uint16_t pitchSum = 0;
+      for (uint8_t i = 0; i < 4; i++) {
+        pitchSum += pitchRun[i];
+      }
+      pitchAverage = pitchSum >> 2;
     }
     //set ADC MULTIPLEXER to read the next channel
     lastAnalogChannelRead = analogChannelRead;
