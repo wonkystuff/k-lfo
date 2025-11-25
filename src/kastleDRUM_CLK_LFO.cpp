@@ -55,31 +55,31 @@ Kastle Drum Features
 uint16_t analogValues[3];
 uint16_t lastAnalogValues[3];
 uint8_t runglerByte;
-uint16_t upIncrement = 0;
-uint16_t downIncrement = 255;
-uint8_t waveshape;
 
-uint16_t runglerOut;
+uint8_t runglerOut;
 bool lastDoReset;
 const uint8_t runglerMap[8] = {
     0, 80, 120, 150, 180, 200, 220, 255};
 
-uint8_t out;
 uint8_t lfoValue = 0;
 bool lfoFlop = true;
 bool doReset = false;
 
-uint16_t wsMap[10] = {
+const uint8_t wsMap[10] = {
     0, 50, 127, 191, 255, 80, 157, 180, 220, 254};
 
 #define WSMAP_POINTS 5
 
 uint8_t mapLookup[256];
 
-uint32_t curveMap(uint8_t value, uint8_t numberOfPoints, uint16_t *tableMap)
+uint32_t curveMap(uint8_t value, uint8_t numberOfPoints, const uint8_t *tableMap)
 {
-    uint32_t inMin = 0, inMax = 255, outMin = 0, outMax = 255;
-    for (int i = 0; i < numberOfPoints - 1; i++)
+    uint32_t inMin = 0;
+    uint32_t inMax = 255;
+    uint32_t outMin = 0;
+    uint32_t outMax = 255;
+
+    for (uint8_t i = 0; i < numberOfPoints - 1; i++)
     {
         if (value >= tableMap[i] && value <= tableMap[i + 1])
         {
