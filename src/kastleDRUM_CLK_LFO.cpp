@@ -96,7 +96,7 @@ uint32_t curveMap(uint8_t value, uint8_t numberOfPoints, uint16_t *tableMap)
     return map(value, inMin, inMax, outMin, outMax);
 }
 
-void createLookup()
+void createLookup(void)
 {
     for (uint16_t i = 0; i < 256; i++)
     {
@@ -170,7 +170,7 @@ void setFrequency(int _freq)
     OCR1A = compare + 128;
 }
 
-void setup()
+void setup(void)
 {
     digitalWrite(5, HIGH);
     pinMode(4, INPUT);
@@ -302,4 +302,3 @@ ISR(TIMER1_COMPA_vect) // audiorate interrupt
 
     TCNT1 = 0;
 }
-
