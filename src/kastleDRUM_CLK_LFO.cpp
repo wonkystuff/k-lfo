@@ -104,7 +104,16 @@ void createLookup()
     }
 }
 
-void startConversion()
+// #### FUNCTIONS TO ACCES ADC REGISTERS
+void init(void)
+{
+    ADMUX = 0;
+    // prescaler = highest division
+    ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0) | _BV(ADIE);
+    sei();
+}
+
+void startConversion(void)
 {
     bitWrite(ADCSRA, ADSC, 1); // start conversion
 }
@@ -295,16 +304,3 @@ ISR(TIMER1_COMPA_vect) // audiorate interrupt
     TCNT1 = 0;
 }
 
-// #### FUNCTIONS TO ACCES ADC REGISTERS
-void init()
-{
-
-    ADMUX = 0;
-    bitWrite(ADCSRA, ADEN, 1);  // adc enabled
-    bitWrite(ADCSRA, ADPS2, 1); // set prescaler
-    bitWrite(ADCSRA, ADPS1, 1); // set prescaler
-    bitWrite(ADCSRA, ADPS0, 1); // set prescaler
-    bitWrite(ADCSRA, ADIE, 1);  // enable conversion finished interupt
-    bitWrite(SREG, 7, 1);
-    // prescaler = highest division
-}
