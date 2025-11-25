@@ -224,7 +224,7 @@ ISR(ADC_vect)
 uint32_t resetHappened = 0;
 bool makeReset = false;
 
-void renderRungler()
+void renderRungler(void)
 {
     uint8_t analogueByte = analogValues[0] >> 2;      // convert 10-bit ADC value to 8-bit
     uint8_t newBit = bitRead(runglerByte, 7) ? 1 : 0; // remember the MSbit as a '1' or '0'
