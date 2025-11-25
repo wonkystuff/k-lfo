@@ -1,3 +1,12 @@
+/* k-lfo v1.0
+ *
+ * Updates to KASTLE LFO code by J Tuffen for wonkystuff ltd. https://wonkystuff.co.uk
+ * Original code by Vaclav Pelousek, Original header-comment included below
+ *
+ * - Removal of redundant code
+ * - Reformatted (using VSCode auto-formatter)
+ * - converted to PlatformIO project (was Arduino IDE based, now all settings are contained in platformio.ini)
+ */
 
 /*
 KASTLE LFO v 1.0
@@ -39,46 +48,29 @@ Kastle Drum Features
   -and the whole bastl crew that made this project possible
   -Arduino community and the forums for picking ups bits of code to setup the timers & interrupts
   -v1.5 and kastle drum uses bits of code from miniMO DCO http://www.minimosynth.com/
-
  */
+
 #include <Arduino.h>
-//#define F_CPU 8000000 // This is used by delay.h library
 
 uint8_t analogChannelRead = 1;
 uint16_t analogValues[3];
 uint16_t lastAnalogValues[3];
 uint8_t runglerByte;
-int pwmCounter;
 uint16_t upIncrement = 0;
 uint16_t downIncrement = 255;
-uint32_t _upIncrement = 0;
-uint32_t _downIncrement = 255;
-uint8_t pwmIncrement;
-uint8_t waveshape, lastWaveshape;
-long _value;
-bool goingUp;
-uint16_t counter;
+uint8_t waveshape;
 
-bool resetState = false;
 uint16_t runglerOut;
 bool lastDoReset;
 const uint8_t runglerMap[8] = {
     0, 80, 120, 150, 180, 200, 220, 255};
 
-uint8_t _xor;
-int _val;
-bool _gate;
 int out, in;
-bool render;
-bool cycle;
 const bool usePin[4] = {
     true, false, true, false};
 uint8_t lfoValue = 0;
 bool lfoFlop = true;
 bool doReset = false;
-bool firstRead = false;
-const uint8_t analogToDigitalPinMapping[4] = {
-    7, PORTB2, PORTB4, PORTB3};
 
 uint16_t wsMap[10] = {
     0, 50, 127, 191, 255, 80, 157, 180, 220, 254};
