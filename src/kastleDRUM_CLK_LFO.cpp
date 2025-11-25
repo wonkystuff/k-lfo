@@ -229,15 +229,11 @@ void renderRungler()
     uint8_t analogueByte = analogValues[0] >> 2;      // convert 10-bit ADC value to 8-bit
     uint8_t newBit = bitRead(runglerByte, 7) ? 1 : 0; // remember the MSbit as a '1' or '0'
     runglerByte <<= 1;                                // shift rungler byte left one place - **LSBit is now zero**
-    if (analogueByte < 150)                           // if 'bit' input is low (less than 150)
-    {
-        newBit = newBit; // do nothing to newBit
-    }
-    else if (analogueByte > 162)
+    if (analogueByte > 162)
     {
         newBit = TCNT0 >> 7; // randomise newBit
     }
-    else
+    else if (analogueByte >= 150) // if 'bit' input is in the middle (less than 162, but bigger than 149)
     {
         newBit = !newBit; // invert newBit - rungler sequence will be 16 steps
     }
