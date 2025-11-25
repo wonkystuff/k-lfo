@@ -52,7 +52,6 @@ Kastle Drum Features
 
 #include <Arduino.h>
 
-uint8_t analogChannelRead = 1;
 uint16_t analogValues[3];
 uint16_t lastAnalogValues[3];
 uint8_t runglerByte;
@@ -66,7 +65,6 @@ const uint8_t runglerMap[8] = {
     0, 80, 120, 150, 180, 200, 220, 255};
 
 uint8_t out;
-const bool useADC[4] = {     true, false, true, false}; // using ADC0 and ADC2
 uint8_t lfoValue = 0;
 bool lfoFlop = true;
 bool doReset = false;
@@ -187,12 +185,15 @@ void setup(void)
     pinMode(4, INPUT);
     digitalWrite(4, LOW);
     init();
-    connectChannel(analogChannelRead);
+    connectChannel(0);
     startConversion();
 }
 
+
 ISR(ADC_vect)
 {
+    static uint8_t analogChannelRead = 0;
+
     lastAnalogValues[analogChannelRead] = analogValues[analogChannelRead];
     analogValues[analogChannelRead] = getConversionResult();
     if ((analogChannelRead == 2) &&
@@ -201,22 +202,9 @@ ISR(ADC_vect)
         setFrequency(mapLookup[analogValues[2] >> 2]);
     }
 
-    analogChannelRead++;
-    while (!useADC[analogChannelRead])
-    {
-        analogChannelRead++;
-        if (analogChannelRead > 3)
-        {
-            analogChannelRead = 0;
-        }
-    }
+    analogChannelRead = analogChannelRead == 0 ? 2 : 0; // flip analogChannelRead between 0 and 2 since those are the only ADCs we're using
 
-    if (analogChannelRead > 2)
-    {
-        analogChannelRead = 2;
-    }
     connectChannel(analogChannelRead);
-
     startConversion();
 }
 
@@ -250,7 +238,7 @@ void loop(void)
 {
     // pure nothingness
     doReset = bitRead(PINB, PINB3);
-    if (!lastDoReset && doReset)    // we've seen a change in the reset input
+    if (!lastDoReset && doReset) // we've seen a change in the reset input
     {
         resetHappened++;
         if (resetHappened > 8)
