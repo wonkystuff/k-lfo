@@ -65,7 +65,7 @@ bool lastDoReset;
 const uint8_t runglerMap[8] = {
     0, 80, 120, 150, 180, 200, 220, 255};
 
-int out, in;
+uint8_t out;
 const bool usePin[4] = {
     true, false, true, false};
 uint8_t lfoValue = 0;
@@ -251,31 +251,36 @@ void loop(void)
 {
     // pure nothingness
     doReset = bitRead(PINB, PINB3);
-    if (!lastDoReset && doReset)
+    if (!lastDoReset && doReset)    // we've seen a change in the reset input
     {
         resetHappened++;
         if (resetHappened > 8)
+        {
             makeReset = false;
+        }
         if (makeReset)
-            lfoValue = 0, lfoFlop = 0;
+        {
+            lfoValue = 0;
+            lfoFlop = 0;
+        }
         renderRungler();
     }
     lastDoReset = doReset;
 
     lastSquareState = squareState;
-    if (lfoValue < 128)
-        squareState = 1;
-    else
-        squareState = 0;
+    squareState = (lfoValue < 128) ? 1 : 0;
 
     if (lastSquareState != squareState)
     {
         if (makeReset)
+        {
             renderRungler();
+        }
         bitWrite(PORTB, PINB2, squareState);
     }
 
-    OCR0B = constrain(out, 0, 255);
+    // depending on lfoFlop, we're ascending or descending...
+    OCR0B = lfoFlop ? 255 - lfoValue : lfoValue;
     OCR0A = runglerOut;
 }
 
@@ -283,22 +288,22 @@ ISR(TIMER1_COMPA_vect) // audiorate interrupt
 {
     lfoValue++;
 
-    if (lfoValue == 0)
+    if (lfoValue == 0) // lfoValue has wrapped from 255 -> 0
     {
-
         lfoFlop = !lfoFlop;
         if (lfoFlop)
         {
             if (resetHappened > 4)
-                makeReset = false, resetHappened = 0;
+            {
+                makeReset = false;
+                resetHappened = 0;
+            }
             else
-                makeReset = true, resetHappened = 0;
+            {
+                makeReset = true;
+                resetHappened = 0;
+            }
         }
     }
-    if (lfoFlop)
-        out = 255 - lfoValue;
-    else
-        out = lfoValue;
-
     TCNT1 = 0;
 }
