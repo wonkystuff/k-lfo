@@ -66,8 +66,7 @@ const uint8_t runglerMap[8] = {
     0, 80, 120, 150, 180, 200, 220, 255};
 
 uint8_t out;
-const bool usePin[4] = {
-    true, false, true, false};
+const bool useADC[4] = {     true, false, true, false}; // using ADC0 and ADC2
 uint8_t lfoValue = 0;
 bool lfoFlop = true;
 bool doReset = false;
@@ -203,7 +202,7 @@ ISR(ADC_vect)
     }
 
     analogChannelRead++;
-    while (!usePin[analogChannelRead])
+    while (!useADC[analogChannelRead])
     {
         analogChannelRead++;
         if (analogChannelRead > 3)
