@@ -242,12 +242,11 @@ void renderRungler()
         newBit = !newBit; // invert newBit - rungler sequence will be 16 steps
     }
     runglerByte |= newBit; // set the LSBit
-    runglerOut = 0;
 
     // extract bits 0,3, and 5 to form the rungler's output
-    bitWrite(runglerOut, 0, bitRead(runglerByte, 0));
-    bitWrite(runglerOut, 1, bitRead(runglerByte, 3));
-    bitWrite(runglerOut, 2, bitRead(runglerByte, 5));
+    runglerOut = runglerByte & 0x01;                                    // initialise runglerOut with bit zero of rungler byte - bitWrite(runglerOut, 0, bitRead(runglerByte, 0));
+    runglerOut = runglerByte & _BV(3) ? runglerOut | 0x02 : runglerOut; // bit 1 of runglerOut is set by bit 3 of runglerByte - bitWrite(runglerOut, 1, bitRead(runglerByte, 3));
+    runglerOut = runglerByte & _BV(5) ? runglerOut | 0x04 : runglerOut; // bit 2 of runglerOut is set by bit 5 of runglerByte - bitWrite(runglerOut, 2, bitRead(runglerByte, 5));
     runglerOut = runglerMap[runglerOut];
 }
 
