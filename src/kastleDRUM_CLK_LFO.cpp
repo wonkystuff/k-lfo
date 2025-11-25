@@ -115,30 +115,29 @@ void init(void)
 
 void startConversion(void)
 {
-    bitWrite(ADCSRA, ADSC, 1); // start conversion
+    ADCSRA |= _BV(ADSC); // start conversion
 }
 
-bool isConversionFinished()
+bool isConversionFinished(void)
 {
     return (ADCSRA & (1 << ADIF));
 }
 
-bool isConversionRunning()
+bool isConversionRunning(void)
 {
-    return !(ADCSRA & (1 << ADIF));
+    return !isConversionFinished();
 }
 
-uint16_t getConversionResult()
+uint16_t getConversionResult(void)
 {
     uint16_t result = ADCL;
     return result | (ADCH << 8);
 }
 
 // channel 8 can be used to measure the temperature of the chip
-void connectChannel(uint8_t number)
+void connectChannel(const uint8_t number)
 {
-    ADMUX &= (11110000);
-    ADMUX |= number;
+    ADMUX = number & 0x03; // limit to lower 2 bits - upper bits are always zero
 }
 
 void setTimers(void)
